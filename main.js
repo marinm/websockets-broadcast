@@ -6,6 +6,7 @@ wss.on("error", console.error);
 wss.on("connection", (ws, request) => {
     const url = new URL(request.url, "wss://marinm.net");
     ws.$channel = url?.searchParams.get("channel") ?? "";
+    ws.$echo = (url?.searchParams.get("echo") ?? "") !== "false";
     console.log(`new connection on channel "${ws.$channel}"`);
     ws.on("message", (data, isBinary) => broadcast(ws, data, isBinary));
     ws.on("error", console.error);
@@ -16,7 +17,8 @@ function broadcast(sender, data, isBinary) {
     wss.clients.forEach((ws) => {
         if (
             ws.readyState === WebSocket.OPEN &&
-            ws.$channel === sender.$channel
+            ws.$channel === sender.$channel &&
+            !(ws == sender && !ws.$echo)
         ) {
             ws.send(data, { binary: isBinary });
         }
