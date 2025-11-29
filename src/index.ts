@@ -57,16 +57,12 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   };
   ws.send(JSON.stringify(serverMessage));
 
-  ws.on("message", (data, isBinary) => broadcast(ws, data, isBinary));
+  ws.on("message", (rawData) => broadcast(ws, rawData));
   ws.on("error", console.error);
 });
 
-function broadcast(
-  sender: BroadcastWebSocket,
-  data: WebSocket.RawData,
-  isBinary: boolean,
-) {
-  const senderMessage = validMessage(data);
+function broadcast(sender: BroadcastWebSocket, rawData: WebSocket.RawData) {
+  const senderMessage = validMessage(rawData);
   console.log(
     `connectionId ${sender.connectionId}`,
     `channel ${sender.channel ?? ""}`,
