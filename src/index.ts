@@ -16,12 +16,12 @@ type ServerMessage = {
 };
 
 type ClientMessage = {
-  data: string;
+  data: object;
 };
 
 type BroadcastMessage = {
   from: string;
-  data: string;
+  data: object;
 };
 
 export const env = z
@@ -46,9 +46,17 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
 
   // Set the channel they want to join.
   const url = new URL(request.url ?? "", `${env.PROTOCOL}://${env.HOST}`);
-  ws.channel = url?.searchParams.get("channel") ?? "";
+  const channel = url?.searchParams.get("channel") ?? "";
+
+  ws.channel = channel;
 
   console.log(`new connection on channel "${ws.channel}"`);
+
+  // Announce to the channel when a connection opens...
+  broadcastPresentList(channel);
+
+  // ...and closes
+  ws.on("close", () => broadcastPresentList(channel));
 
   // Let the client know their own ID.
   const serverMessage: ServerMessage = {
@@ -74,6 +82,30 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   ws.on("error", console.error);
 });
 
+function broadcastPresentList(channel: string): void {
+  console.log("broadcastPresentList");
+  broadcast(channel, {
+    from: "server",
+    data: {
+      present: getChannelConnectionIds(channel),
+    },
+  });
+}
+
+function getChannelConnectionIds(channel: string): string[] {
+  const list: string[] = [];
+  server.clients.forEach((ws: BroadcastWebSocket) => {
+    if (
+      ws.readyState === WebSocket.OPEN &&
+      ws.channel === channel &&
+      ws.connectionId !== undefined
+    ) {
+      list.push(ws.connectionId);
+    }
+  });
+  return list;
+}
+
 function broadcast(channel: string, message: BroadcastMessage) {
   console.log(
     "Broadcast: ",
@@ -93,7 +125,7 @@ function parseClientMessage(data: WebSocket.RawData): null | ClientMessage {
   try {
     return z
       .object({
-        data: z.coerce.string(),
+        data: z.any(),
       })
       .parse(JSON.parse(data.toString()));
   } catch {
