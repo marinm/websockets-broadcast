@@ -1,11 +1,17 @@
 import crypto from "crypto";
 import WebSocket, { WebSocketServer } from "ws";
+import "dotenv/config";
+import { z } from "zod";
 
-const PROTOCOL = "ws";
-const HOST = "localhost";
-const PORT = 3001;
+export const env = z
+  .object({
+    PROTOCOL: z.coerce.string(),
+    HOST: z.coerce.string(),
+    PORT: z.coerce.number(),
+  })
+  .parse(process.env);
 
-const server = new WebSocketServer({ port: 3001 });
+const server = new WebSocketServer({ port: env.PORT });
 
 interface BroadcastWebSocket extends WebSocket {
   connectionId?: string;
@@ -14,7 +20,7 @@ interface BroadcastWebSocket extends WebSocket {
 }
 
 server.on("listening", () =>
-  console.log(`Listening at ${PROTOCOL}://${HOST}:${PORT}...`),
+  console.log(`Listening at ${env.PROTOCOL}://${env.HOST}:${env.PORT}...`),
 );
 
 server.on("error", console.error);
@@ -24,7 +30,7 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   ws.connectionId = crypto.randomUUID();
 
   // Set the channel they want to join.
-  const url = new URL(request.url ?? "", `${PROTOCOL}://${HOST}`);
+  const url = new URL(request.url ?? "", `${env.PROTOCOL}://${env.HOST}`);
   ws.channel = url?.searchParams.get("channel") ?? "";
 
   // The client must specifically connect with a ?echo=false query param to opt
