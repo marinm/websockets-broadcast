@@ -15,7 +15,7 @@ type ServerMessage = {
   };
 };
 
-type SenderMessage = {
+type ClientMessage = {
   data: string;
 };
 
@@ -62,19 +62,19 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
 });
 
 function broadcast(sender: BroadcastWebSocket, rawData: WebSocket.RawData) {
-  const senderMessage = validMessage(rawData);
+  const clientMessage = validMessage(rawData);
   console.log(
     `connectionId ${sender.connectionId}`,
     `channel ${sender.channel ?? ""}`,
-    `message ${senderMessage ? senderMessage.data : " Invalid message"}`,
+    `message ${clientMessage ? clientMessage.data : " Invalid message"}`,
   );
 
-  if (!senderMessage || !sender.connectionId || sender.channel === undefined) {
+  if (!clientMessage || !sender.connectionId || sender.channel === undefined) {
     return;
   }
 
   const broadcastMessage: BroadcastMessage = {
-    data: senderMessage.data,
+    data: clientMessage.data,
     from: sender.connectionId,
   };
   server.clients.forEach((ws: BroadcastWebSocket) => {
@@ -84,7 +84,7 @@ function broadcast(sender: BroadcastWebSocket, rawData: WebSocket.RawData) {
   });
 }
 
-function validMessage(data: WebSocket.RawData): null | SenderMessage {
+function validMessage(data: WebSocket.RawData): null | ClientMessage {
   try {
     return z
       .object({
