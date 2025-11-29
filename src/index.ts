@@ -13,6 +13,11 @@ type SenderMessage = {
   data: string;
 }
 
+type BroadcastMessage = {
+  data: string;
+  from: string;
+}
+
 export const env = z
   .object({
     PROTOCOL: z.coerce.string(),
@@ -53,23 +58,28 @@ function broadcast(
   data: WebSocket.RawData,
   isBinary: boolean,
 ) {
-  const message = validMessage(data);
+  const senderMessage = validMessage(data);
   console.log(
     `connectionId ${sender.connectionId}`,
     `channel ${sender.channel ?? ""}`,
-    `message ${message ? message.data : " Invalid message"}`
+    `message ${senderMessage ? senderMessage.data : " Invalid message"}`
   );
 
-  if (!message) {
+  if (!senderMessage || !sender.connectionId) {
     return;
   }
+
+  const broadcastMessage: BroadcastMessage = {
+    data: senderMessage.data,
+    from: sender.connectionId,
+  };
   server.clients.forEach((ws: BroadcastWebSocket) => {
     if (
       ws.readyState === WebSocket.OPEN &&
       ws.channel === sender.channel &&
       !(ws == sender && !ws.echo)
     ) {
-      ws.send(JSON.stringify(message), { binary: false });
+      ws.send(JSON.stringify(broadcastMessage), { binary: false });
     }
   });
 }
