@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import WebSocket, { WebSocketServer } from "ws";
 
 const PROTOCOL = "ws";
@@ -7,6 +8,7 @@ const PORT = 3001;
 const wss = new WebSocketServer({ port: 3001 });
 
 interface BroadcastWebSocket extends WebSocket {
+  connectionId?: string;
   channel?: string;
   echo?: boolean;
 }
@@ -17,6 +19,7 @@ wss.on("listening", () =>
 
 wss.on("error", console.error);
 wss.on("connection", (ws: BroadcastWebSocket, request) => {
+  ws.connectionId = crypto.randomUUID();
   const url = new URL(request.url ?? "", `${PROTOCOL}://${HOST}`);
   ws.channel = url?.searchParams.get("channel") ?? "";
   ws.echo = (url?.searchParams.get("echo") ?? "") !== "false";
@@ -30,7 +33,7 @@ function broadcast(
   data: WebSocket.RawData,
   isBinary: boolean,
 ) {
-  console.log(`channel ${sender.channel}: %s`, data);
+  console.log(`connectionId ${sender.connectionId} channel ${sender.channel}: %s`, data);
   wss.clients.forEach((ws: BroadcastWebSocket) => {
     if (
       ws.readyState === WebSocket.OPEN &&
