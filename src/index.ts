@@ -20,8 +20,8 @@ type ClientMessage = {
 };
 
 type BroadcastMessage = {
-  data: string;
   from: string;
+  data: string;
 };
 
 export const env = z
@@ -57,34 +57,39 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   };
   ws.send(JSON.stringify(serverMessage));
 
-  ws.on("message", (rawData) => broadcast(ws, rawData));
+  ws.on("message", (rawData) => {
+    if (ws.channel === undefined || ws.connectionId === undefined) {
+      return;
+    }
+    const clientMessage = parseClientMessage(rawData);
+    if (clientMessage == null) {
+      return;
+    }
+    const broadcastMessage: BroadcastMessage = {
+      from: ws.connectionId,
+      data: clientMessage.data,
+    };
+    broadcast(ws.channel, broadcastMessage);
+  });
   ws.on("error", console.error);
 });
 
-function broadcast(sender: BroadcastWebSocket, rawData: WebSocket.RawData) {
-  const clientMessage = validMessage(rawData);
+function broadcast(channel: string, message: BroadcastMessage) {
   console.log(
-    `connectionId ${sender.connectionId}`,
-    `channel ${sender.channel ?? ""}`,
-    `message ${clientMessage ? clientMessage.data : " Invalid message"}`,
+    "Broadcast: ",
+    `channel ${channel}`,
+    `from ${message.from}`,
+    `data ${message.data}`,
   );
 
-  if (!clientMessage || !sender.connectionId || sender.channel === undefined) {
-    return;
-  }
-
-  const broadcastMessage: BroadcastMessage = {
-    data: clientMessage.data,
-    from: sender.connectionId,
-  };
   server.clients.forEach((ws: BroadcastWebSocket) => {
-    if (ws.readyState === WebSocket.OPEN && ws.channel === sender.channel) {
-      ws.send(JSON.stringify(broadcastMessage), { binary: false });
+    if (ws.readyState === WebSocket.OPEN && ws.channel === channel) {
+      ws.send(JSON.stringify(message), { binary: false });
     }
   });
 }
 
-function validMessage(data: WebSocket.RawData): null | ClientMessage {
+function parseClientMessage(data: WebSocket.RawData): null | ClientMessage {
   try {
     return z
       .object({
