@@ -9,6 +9,13 @@ interface BroadcastWebSocket extends WebSocket {
   echo?: boolean;
 }
 
+type ServerMessage = {
+  from: "server";
+  data: {
+    connectionId: string;
+  };
+}
+
 type SenderMessage = {
   data: string;
 }
@@ -48,6 +55,13 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   ws.echo = (url?.searchParams.get("echo") ?? "") !== "false";
 
   console.log(`new connection on channel "${ws.channel}"`);
+
+  // Let the client know their own ID.
+  const serverMessage: ServerMessage = {
+    from: "server",
+    data: {connectionId: ws.connectionId},
+  };
+  ws.send(JSON.stringify(serverMessage));
 
   ws.on("message", (data, isBinary) => broadcast(ws, data, isBinary));
   ws.on("error", console.error);
