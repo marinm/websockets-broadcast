@@ -14,16 +14,16 @@ type ServerMessage = {
   data: {
     connectionId: string;
   };
-}
+};
 
 type SenderMessage = {
   data: string;
-}
+};
 
 type BroadcastMessage = {
   data: string;
   from: string;
-}
+};
 
 export const env = z
   .object({
@@ -59,7 +59,7 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   // Let the client know their own ID.
   const serverMessage: ServerMessage = {
     from: "server",
-    data: {connectionId: ws.connectionId},
+    data: { connectionId: ws.connectionId },
   };
   ws.send(JSON.stringify(serverMessage));
 
@@ -76,7 +76,7 @@ function broadcast(
   console.log(
     `connectionId ${sender.connectionId}`,
     `channel ${sender.channel ?? ""}`,
-    `message ${senderMessage ? senderMessage.data : " Invalid message"}`
+    `message ${senderMessage ? senderMessage.data : " Invalid message"}`,
   );
 
   if (!senderMessage || !sender.connectionId) {
@@ -98,11 +98,13 @@ function broadcast(
   });
 }
 
-function validMessage(data: WebSocket.RawData): null|SenderMessage {
+function validMessage(data: WebSocket.RawData): null | SenderMessage {
   try {
-    return z.object({
-      data: z.coerce.string(),
-    }).parse(JSON.parse(data.toString()));
+    return z
+      .object({
+        data: z.coerce.string(),
+      })
+      .parse(JSON.parse(data.toString()));
   } catch {
     return null;
   }
