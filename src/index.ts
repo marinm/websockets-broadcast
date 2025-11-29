@@ -6,7 +6,6 @@ import { z } from "zod";
 interface BroadcastWebSocket extends WebSocket {
   connectionId?: string;
   channel?: string;
-  echo?: boolean;
 }
 
 type ServerMessage = {
@@ -49,11 +48,6 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
   const url = new URL(request.url ?? "", `${env.PROTOCOL}://${env.HOST}`);
   ws.channel = url?.searchParams.get("channel") ?? "";
 
-  // The client must specifically connect with a ?echo=false query param to opt
-  // out of echoes. Otherwise, they will get all of their own messages echoed
-  // back to them.
-  ws.echo = (url?.searchParams.get("echo") ?? "") !== "false";
-
   console.log(`new connection on channel "${ws.channel}"`);
 
   // Let the client know their own ID.
@@ -79,7 +73,7 @@ function broadcast(
     `message ${senderMessage ? senderMessage.data : " Invalid message"}`,
   );
 
-  if (!senderMessage || !sender.connectionId) {
+  if (!senderMessage || !sender.connectionId || sender.channel === undefined) {
     return;
   }
 
@@ -88,11 +82,7 @@ function broadcast(
     from: sender.connectionId,
   };
   server.clients.forEach((ws: BroadcastWebSocket) => {
-    if (
-      ws.readyState === WebSocket.OPEN &&
-      ws.channel === sender.channel &&
-      !(ws == sender && !ws.echo)
-    ) {
+    if (ws.readyState === WebSocket.OPEN && ws.channel === sender.channel) {
       ws.send(JSON.stringify(broadcastMessage), { binary: false });
     }
   });
