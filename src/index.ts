@@ -8,13 +8,6 @@ interface BroadcastWebSocket extends WebSocket {
   channel?: string;
 }
 
-type ServerMessage = {
-  from: "server";
-  data: {
-    connectionId: string;
-  };
-};
-
 type ClientMessage = {
   data: object;
 };
@@ -23,6 +16,10 @@ type BroadcastMessage = {
   from: string;
   data: object;
 };
+
+interface ServerMessage extends BroadcastMessage {
+  connectionId: string;
+}
 
 export const env = z
   .object({
@@ -57,13 +54,6 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
 
   // ...and closes
   ws.on("close", () => broadcastPresentList(channel));
-
-  // Let the client know their own ID.
-  const serverMessage: ServerMessage = {
-    from: "server",
-    data: { connectionId: ws.connectionId },
-  };
-  ws.send(JSON.stringify(serverMessage));
 
   ws.on("message", (rawData) => {
     if (ws.channel === undefined || ws.connectionId === undefined) {
@@ -115,8 +105,16 @@ function broadcast(channel: string, message: BroadcastMessage) {
   );
 
   server.clients.forEach((ws: BroadcastWebSocket) => {
-    if (ws.readyState === WebSocket.OPEN && ws.channel === channel) {
-      ws.send(JSON.stringify(message), { binary: false });
+    if (
+      ws.readyState === WebSocket.OPEN &&
+      ws.channel === channel &&
+      ws.connectionId
+    ) {
+      const serverMessage: ServerMessage = {
+        connectionId: ws.connectionId,
+        ...message,
+      };
+      ws.send(JSON.stringify(serverMessage), { binary: false });
     }
   });
 }
