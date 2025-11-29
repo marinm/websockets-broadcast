@@ -3,6 +3,16 @@ import WebSocket, { WebSocketServer } from "ws";
 import "dotenv/config";
 import { z } from "zod";
 
+interface BroadcastWebSocket extends WebSocket {
+  connectionId?: string;
+  channel?: string;
+  echo?: boolean;
+}
+
+type SenderMessage = {
+  data: string;
+}
+
 export const env = z
   .object({
     PROTOCOL: z.coerce.string(),
@@ -12,12 +22,6 @@ export const env = z
   .parse(process.env);
 
 const server = new WebSocketServer({ port: env.PORT });
-
-interface BroadcastWebSocket extends WebSocket {
-  connectionId?: string;
-  channel?: string;
-  echo?: boolean;
-}
 
 server.on("listening", () =>
   console.log(`Listening at ${env.PROTOCOL}://${env.HOST}:${env.PORT}...`),
@@ -49,14 +53,33 @@ function broadcast(
   data: WebSocket.RawData,
   isBinary: boolean,
 ) {
-  console.log(`connectionId ${sender.connectionId} channel ${sender.channel}: %s`, data);
+  const message = validMessage(data);
+  console.log(
+    `connectionId ${sender.connectionId}`,
+    `channel ${sender.channel ?? ""}`,
+    `message ${message ? message.data : " Invalid message"}`
+  );
+
+  if (!message) {
+    return;
+  }
   server.clients.forEach((ws: BroadcastWebSocket) => {
     if (
       ws.readyState === WebSocket.OPEN &&
       ws.channel === sender.channel &&
       !(ws == sender && !ws.echo)
     ) {
-      ws.send(data, { binary: isBinary });
+      ws.send(JSON.stringify(message), { binary: false });
     }
   });
+}
+
+function validMessage(data: WebSocket.RawData): null|SenderMessage {
+  try {
+    return z.object({
+      data: z.coerce.string(),
+    }).parse(JSON.parse(data.toString()));
+  } catch {
+    return null;
+  }
 }
