@@ -1,16 +1,35 @@
 # websockets-broadcast
 
-## Broadcast channels
+## Startup
 
-Connect to this server via WebSocket and specify a channel:
+```bash
+npm install
+npm run build
+node ./dist/index.js
+```
+
+## Channels
+
+Connect to this server via WebSocket:
 
 ```
 ws://localhost:3001/?channel=any-string-here
 ```
 
-_Aside: Every connection is attached to a channel. If you don't specify a channel, you will simply be joined to the empty string channel, which acts like a normal channel._
+All clients connected to the same channel will receive each other's messages.
 
-You will receive all messages from all clients connected to the same channel.
+### Default channel
+
+If you don't specify a channel, e.g.:
+
+- `ws://localhost:3001/`
+- `ws://localhost:3001/?channel=`
+
+you will be joined to the empty string channel, which is a normal channel.
+
+All connections belong to one channel. There is no way to broadcast to all clients on the server.
+
+### Send
 
 Send a message in this JSON format
 
@@ -22,33 +41,11 @@ Send a message in this JSON format
 
 The server will broadcast your message to every client connected to the same channel, including you.
 
-## Server messages
+## `connectionId`
 
-The server sends special messages to clients in this format
+Every WebSocket connection is assigned a public random UUID. Every message that the client receives on that connection will have that `connectionId`.
 
-```json
-{
-  "from": "server",
-  "data": {
-    // ...
-  }
-}
-```
-
-When your connection starts, the server will send this message only to you:
-
-```
-{
-  "from": "server",
-  "data": {
-    "connectionId": "2f8e5a6c-8baa-44b9-8967-b91e00fe9450"
-  }
-}
-```
-
-where `connectionId` is a random UUID, which is public and remains the same for the duration of the WebSocket connection.
-
-Note that WebSocket connections can time out and close automatically. If you reconnect, you will be assigned a new `connectionId`. There is no way to reconnect using an old `connectionId`.
+WebSocket connections can time out and close automatically. If you reconnect, you will be assigned a new `connectionId`. There is no way to reconnect using an old `connectionId`.
 
 ## Presence
 
@@ -56,6 +53,7 @@ When a new connection opens or closes on a channel, the server will broadcast a 
 
 ```json
 {
+  "connectionId": "2f8e5a6c-8baa-44b9-8967-b91e00fe9450",
   "from": "server",
   "data": {
     "present": [
