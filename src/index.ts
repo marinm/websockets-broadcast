@@ -61,6 +61,7 @@ server.on("connection", (ws: BroadcastWebSocket, request) => {
     }
     const clientMessage = parseClientMessage(rawData);
     if (clientMessage == null) {
+      console.log(`Invalid client message from ${ws.connectionId}`);
       return;
     }
     const broadcastMessage: BroadcastMessage = {
