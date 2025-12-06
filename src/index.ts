@@ -18,7 +18,7 @@ type BroadcastMessage = {
 };
 
 interface ServerMessage extends BroadcastMessage {
-  connectionId: string;
+  connection_id: string;
 }
 
 export const env = z
@@ -112,7 +112,7 @@ function broadcast(channel: string, message: BroadcastMessage) {
       ws.connectionId
     ) {
       const serverMessage: ServerMessage = {
-        connectionId: ws.connectionId,
+        connection_id: ws.connectionId,
         ...message,
       };
       ws.send(JSON.stringify(serverMessage), { binary: false });

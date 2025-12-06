@@ -53,7 +53,7 @@ When a new connection opens or closes on a channel, the server will broadcast a 
 
 ```json
 {
-  "connectionId": "2f8e5a6c-8baa-44b9-8967-b91e00fe9450",
+  "connection_id": "2f8e5a6c-8baa-44b9-8967-b91e00fe9450",
   "from": "server",
   "data": {
     "present": [
