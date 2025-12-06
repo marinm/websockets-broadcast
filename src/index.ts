@@ -19,6 +19,7 @@ type BroadcastMessage = {
 
 interface ServerMessage extends BroadcastMessage {
   connection_id: string;
+  broadcast_at: string;
 }
 
 export const env = z
@@ -105,6 +106,9 @@ function broadcast(channel: string, message: BroadcastMessage) {
     `data ${message.data}`,
   );
 
+  // All clients see the same broadcast_at timestamp
+  const broadcastAt = new Date().toISOString();
+
   server.clients.forEach((ws: BroadcastWebSocket) => {
     if (
       ws.readyState === WebSocket.OPEN &&
@@ -113,6 +117,7 @@ function broadcast(channel: string, message: BroadcastMessage) {
     ) {
       const serverMessage: ServerMessage = {
         connection_id: ws.connectionId,
+        broadcast_at: broadcastAt,
         ...message,
       };
       ws.send(JSON.stringify(serverMessage), { binary: false });

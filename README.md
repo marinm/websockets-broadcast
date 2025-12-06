@@ -54,6 +54,7 @@ When a new connection opens or closes on a channel, the server will broadcast a 
 ```json
 {
   "connection_id": "2f8e5a6c-8baa-44b9-8967-b91e00fe9450",
+  "broadcast_at": "2025-12-06T13:55:23.710Z",
   "from": "server",
   "data": {
     "present": [
