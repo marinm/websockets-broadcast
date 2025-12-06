@@ -19,6 +19,7 @@ type BroadcastMessage = {
 
 interface ServerMessage extends BroadcastMessage {
   connection_id: string;
+  message_id: string;
   broadcast_at: string;
 }
 
@@ -109,6 +110,9 @@ function broadcast(channel: string, message: BroadcastMessage) {
   // All clients see the same broadcast_at timestamp
   const broadcastAt = new Date().toISOString();
 
+  // Ever broadcast message, including server messages, gets a unique message_id
+  const messageId = crypto.randomUUID();
+
   server.clients.forEach((ws: BroadcastWebSocket) => {
     if (
       ws.readyState === WebSocket.OPEN &&
@@ -117,6 +121,7 @@ function broadcast(channel: string, message: BroadcastMessage) {
     ) {
       const serverMessage: ServerMessage = {
         connection_id: ws.connectionId,
+        message_id: messageId,
         broadcast_at: broadcastAt,
         ...message,
       };
